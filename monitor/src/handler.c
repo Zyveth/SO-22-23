@@ -8,6 +8,7 @@
 
 #include "../include/util.h"
 #include "../include/handler.h"
+#include "../include/readln.h"
 
 void create_file(Message start, Message end, char* pids_file)
 {
@@ -106,6 +107,63 @@ void status(HashTable h, Message m)
     }
 }
 
+void stats_time(HashTable h, Message m, char* pids_file)
+{
+    int fork_ret = fork();
+
+    if(fork_ret == -1)
+    {
+        perror("Fork error when creating file");
+        exit(-1);
+    }
+
+    if(fork_ret == 0)
+    {
+        char fifoname[20];
+        char filename[20];
+
+        sprintf(fifoname, "/tmp/%d", m.pid);
+        sprintf(filename, "%s/%d", pids_file, m.pid_stats);
+
+        int fd = open(filename, O_RDONLY, 0666);
+
+        if(fd == -1)
+        {
+            perror("Open error when opening PID file");
+            exit(-1);
+        }
+
+        char message[1024];
+
+        readln(fd, message, 1024);
+        readln(fd, message, 1024);
+
+        close(fd);
+
+        double exec_time = atof(message);
+
+        fd = open(fifoname, O_WRONLY);
+
+        if(fd == -1)
+        {
+            perror("Open error when opening PID FIFO");
+            exit(-1);
+        }
+
+        int write_ret = write(fd, &exec_time, sizeof(double));
+
+        if(write_ret == -1)
+        {
+            perror("Write error when replying status");
+            exit(-1);
+        }
+
+        close(fd);
+
+        _exit(1);
+    }
+}
+
 void handle_message(HashTable h, Message message, char* pids_file)
 {
     if(message.type == CREATE)
@@ -118,4 +176,6 @@ void handle_message(HashTable h, Message message, char* pids_file)
     }
     else if(message.type == STATUS)
         status(h, message);
+    else if(message.type == STATS_TIME)
+        stats_time(h, message, pids_file);
 }

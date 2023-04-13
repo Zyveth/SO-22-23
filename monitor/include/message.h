@@ -7,6 +7,7 @@
 #define CREATE 0
 #define END 1
 #define STATUS 2
+#define STATS_TIME 3
 
 typedef struct message
 {
@@ -14,6 +15,7 @@ typedef struct message
     int pid;
     char name[20];
     struct timeval timestamp;
+    int pid_stats;
 } Message;
 
 #endif
