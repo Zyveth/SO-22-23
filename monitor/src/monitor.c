@@ -8,15 +8,24 @@
 #include <sys/time.h>
 
 #include "../include/handler.h"
-#include "../include/message.h"
 
-int fd;
+int fdr, fdw;
 char* fifo = "/tmp/monitor";
+HashTable h;
 
 void signal_callback_handler(int signum)
 {
-    printf("Closing file descriptor.\n");
-    int close_ret = close(fd);
+    printf("Closing reading file descriptor.\n");
+    int close_ret = close(fdr);
+
+    if(close_ret == -1)
+    {
+        perror("Close error");
+        exit(-1);
+    }
+
+    printf("Closing writing file descriptor.\n");
+    close_ret = close(fdw);
 
     if(close_ret == -1)
     {
@@ -38,6 +47,12 @@ void signal_callback_handler(int signum)
 
 int main(int argc, char const *argv[])
 {
+    if(argc < 2)
+    {
+        perror("Invalid number of arguments");
+        exit(-1);
+    }
+
     int bytes_read;
     Message message;
 
@@ -53,26 +68,31 @@ int main(int argc, char const *argv[])
     signal(SIGINT, signal_callback_handler);
 
     printf("Opening reading end.\n");
-    fd = open(fifo, O_RDONLY);
+    fdr = open(fifo, O_RDONLY);
 
-    if(fd == -1)
+    if(fdr == -1)
     {
         perror("Open error");
         exit(-1);
     }
 
-    while(1)
-    {
-        bytes_read = read(fd, &message, sizeof(message));
+    fdw = open(fifo, O_WRONLY);
 
+    if(fdw == -1)
+    {
+        perror("Open error");
+        exit(-1);
+    }
+
+    while((bytes_read = read(fdr, &message, sizeof(message)) > 0))
+    {
         if(bytes_read == -1)
         {
             perror("Read error -> monitor");
             exit(-1);
         }
 
-        printf("%d %d %s %ld %d\n", message.type, message.pid, message.name, message.timestamp.tv_sec, message.timestamp.tv_usec);
-        // handle_message(message);
+        handle_message(h, message, (char*) argv[1]);
     }
 
     return 0;

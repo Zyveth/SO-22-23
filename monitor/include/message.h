@@ -5,6 +5,8 @@
 #include <sys/stat.h>
 
 #define CREATE 0
+#define END 1
+#define STATUS 2
 
 typedef struct message
 {

@@ -71,6 +71,7 @@ int _system_(char* command)
         // TODO: Enviar PID, nome e timestamp ao monitor.
         Message message;
 
+        message.type = CREATE;
         message.pid = getpid();
         message.timestamp = start;
         sprintf(message.name, "%s", execvp_args[0]);
@@ -98,10 +99,17 @@ int _system_(char* command)
 
     // TODO: Enviar PID e timestamp ao monitor.
 
+    Message message;
+    message.type = END;
+    message.pid = terminated_pid;
+    message.timestamp = end;
+
+    write(fd, &message, sizeof(Message));
+
     if(WIFEXITED(status))
     {
         // Imprimir tempo de execução.
-        printf("Ended in %.2f ms\n", calc_mili(&start, &end));
+        printf("Ended in %.2f ms\n", calc_mili(start, end));
 
         return WEXITSTATUS(status); 
     }

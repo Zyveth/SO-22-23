@@ -4,6 +4,7 @@
 
 #include "../include/system.h"
 #include "../include/util.h"
+#include "../include/status.h"
 
 int main(int argc, char const *argv[])
 {
@@ -24,7 +25,8 @@ int main(int argc, char const *argv[])
         if(strcmp(argv[2], "-u") == 0)
             _system_((char*) argv[3]);
     }
-
-
+    else if(strcmp(argv[1], "status") == 0)
+        status();
+        
     return 0;
 }
