@@ -8,14 +8,14 @@
 #define END 1
 #define STATUS 2
 #define STATS_TIME 3
+#define STATS_COMMAND 4
 
 typedef struct message
 {
     int type;
     int pid;
-    char name[20];
+    char name[420];
     struct timeval timestamp;
-    int pid_stats;
 } Message;
 
 #endif

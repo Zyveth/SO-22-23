@@ -5,15 +5,18 @@
 #include <string.h>
 
 #include "../include/message.h"
-#include "../include/stats_time.h"
+#include "../include/stats_command.h"
 
-char* fifo_st = "/tmp/monitor";
+char* fifo_sc = "/tmp/monitor";
 
-void stats_time(char* args[], int args_num)
+void stats_command(char* prog_name, char* args[], int args_num)
 {
     int rets, fifo_fd;
-    long exec_time = 0;
+    int number_times;
     Message m;
+
+    strcat(m.name, prog_name);
+    strcat(m.name, " ");
 
     for(int i = 0; i < args_num - 1; i++)
     {
@@ -23,7 +26,7 @@ void stats_time(char* args[], int args_num)
     
     strcat(m.name, args[args_num - 1]);
 
-    fifo_fd = open(fifo_st, O_WRONLY);
+    fifo_fd = open(fifo_sc, O_WRONLY);
 
     if(fifo_fd == -1)
     {
@@ -45,7 +48,7 @@ void stats_time(char* args[], int args_num)
     }
 
     // Enviar mensagem tipo STATS_TIME ao monitor através do FIFO /tmp/monitor
-    m.type = STATS_TIME;
+    m.type = STATS_COMMAND;
     m.pid = getpid();
 
     rets = write(fifo_fd, &m, sizeof(Message));
@@ -67,7 +70,7 @@ void stats_time(char* args[], int args_num)
         exit(0);
     }
 
-    rets = read(fifo_fd, &exec_time, sizeof(long));
+    rets = read(fifo_fd, &number_times, sizeof(int));
 
     if(rets == -1)
     {
@@ -78,5 +81,5 @@ void stats_time(char* args[], int args_num)
     close(fifo_fd);
     unlink(fifoname);
 
-    printf("Total execution time is %ld ms\n", exec_time);
+    printf("%s was executed %d times\n", prog_name, number_times);
 }

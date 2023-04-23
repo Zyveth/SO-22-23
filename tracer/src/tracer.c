@@ -6,6 +6,7 @@
 #include "../include/util.h"
 #include "../include/status.h"
 #include "../include/stats_time.h"
+#include "../include/stats_command.h"
 
 int main(int argc, char const *argv[])
 {
@@ -30,6 +31,8 @@ int main(int argc, char const *argv[])
         status();
     else if(strcmp(argv[1], "stats-time") == 0)
         stats_time((char**) argv + 2, argc - 2);
+    else if(strcmp(argv[1], "stats-command") == 0)
+        stats_command((char*) argv[2], (char**) argv + 3, argc - 3);
         
     return 0;
 }

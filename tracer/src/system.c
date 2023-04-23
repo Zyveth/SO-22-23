@@ -109,7 +109,7 @@ int _system_(char* command)
     if(WIFEXITED(status))
     {
         // Imprimir tempo de execução.
-        printf("Ended in %.2f ms\n", calc_mili(start, end));
+        printf("Ended in %ld ms\n", calc_mili(start, end));
 
         return WEXITSTATUS(status); 
     }
