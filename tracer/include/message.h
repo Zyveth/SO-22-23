@@ -9,6 +9,7 @@
 #define STATUS 2
 #define STATS_TIME 3
 #define STATS_COMMAND 4
+#define STATS_UNIQUE 5
 
 typedef struct message
 {

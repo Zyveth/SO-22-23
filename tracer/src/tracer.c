@@ -7,6 +7,7 @@
 #include "../include/status.h"
 #include "../include/stats_time.h"
 #include "../include/stats_command.h"
+#include "../include/stats_unique.h"
 
 int main(int argc, char const *argv[])
 {
@@ -33,6 +34,8 @@ int main(int argc, char const *argv[])
         stats_time((char**) argv + 2, argc - 2);
     else if(strcmp(argv[1], "stats-command") == 0)
         stats_command((char*) argv[2], (char**) argv + 3, argc - 3);
+    else if(strcmp(argv[1], "stats-uniq") == 0)
+        stats_unique((char**) argv + 2, argc - 2);
         
     return 0;
 }

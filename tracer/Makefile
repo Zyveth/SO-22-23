@@ -6,8 +6,8 @@ OBJ = obj/
 
 default: tracer
 
-tracer: tracer.o system.o util.o status.o readln.o stats_time.o stats_command.o
-	$(CC) $(CFLAGS) -o tracer $(OBJ)tracer.o $(OBJ)system.o $(OBJ)status.o $(OBJ)readln.o $(OBJ)stats_time.o $(OBJ)stats_command.o $(OBJ)util.o
+tracer: tracer.o system.o util.o status.o readln.o stats_time.o stats_command.o stats_unique.o
+	$(CC) $(CFLAGS) -o tracer $(OBJ)tracer.o $(OBJ)system.o $(OBJ)status.o $(OBJ)readln.o $(OBJ)stats_time.o $(OBJ)stats_command.o $(OBJ)stats_unique.o $(OBJ)util.o
 
 tracer.o:
 	$(CC) $(CFLAGS) -c $(SRC)tracer.c -o $(OBJ)tracer.o
@@ -23,6 +23,9 @@ stats_time.o:
 
 stats_command.o:
 	$(CC) $(CFLAGS) -c $(SRC)stats_command.c -o $(OBJ)stats_command.o
+
+stats_unique.o:
+	$(CC) $(CFLAGS) -c $(SRC)stats_unique.c -o $(OBJ)stats_unique.o
 
 readln.o:
 	$(CC) $(CFLAGS) -c $(SRC)readln.c -o $(OBJ)readln.o

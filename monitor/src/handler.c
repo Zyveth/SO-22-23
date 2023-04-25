@@ -10,6 +10,7 @@
 #include "../include/handler.h"
 #include "../include/readln.h"
 #include "../include/info.h"
+#include "../include/linkedlist.h"
 
 void create_file(Message start, Message end, char* pids_file)
 {
@@ -131,7 +132,7 @@ long get_time(char* pid, char* pids_file)
     return i.exec_time;
 }
 
-void stats_time(HashTable h, Message m, char* pids_file)
+void stats_time(Message m, char* pids_file)
 {
     int fork_ret = fork();
 
@@ -187,7 +188,7 @@ void stats_time(HashTable h, Message m, char* pids_file)
     }
 }
 
-void stats_command(HashTable h, Message m, char* pids_file)
+void stats_command(Message m, char* pids_file)
 {
     
     int fork_ret = fork();
@@ -264,6 +265,129 @@ void stats_command(HashTable h, Message m, char* pids_file)
     }
 }
 
+void stats_unique(Message m, char* pids_file)
+{
+    int fork_ret = fork();
+
+    if(fork_ret == -1)
+    {
+        perror("Fork error when creating file");
+        exit(-1);
+    }
+
+    if(fork_ret == 0)
+    {
+        char filename[20];
+
+        int num_args = count_char(m.name, ' ') + 1;
+
+        char *pids[num_args];
+        char *token, *string;
+        int args = 0;
+
+        string = strdup(m.name);
+
+        while((token = strsep(&string, " ")) != NULL)
+            pids[args++] = strdup(token);
+
+        free(string);
+
+        int fd, rets, p[num_args][2];
+        Info h;
+
+        for(int i = 0; i < num_args; i++)
+        {
+            rets = pipe(p[i]);
+
+            if(rets == -1)
+            {
+                perror("Error creating pipe when handling stats_unique request");
+                exit(-1);
+            }
+            rets = fork();
+
+            if(rets == -1)
+            {
+                perror("Error forking when handling stats_unique request");
+                exit(-1);
+            }
+
+            if(rets == 0)
+            {
+                // Fechar extremo de leitura do pipe anónimo
+                close(p[i][0]);
+
+                // Verificar que ficheiro precisamos abrir
+                sprintf(filename, "%s/%s", pids_file, pids[i]);
+
+                // Abrir ficheiro
+                fd = open(filename, O_RDONLY, 0666);
+
+                if(fd == -1)
+                {
+                    perror("Open error when opening PID file");
+                    _exit(-1);
+                }
+
+                // Ler informação do ficheiro
+                read(fd, &h, sizeof(struct info));
+
+                // Fechar ficheiro
+                close(fd);
+
+                // Escrever para pipe anónimo o nome do programa
+                write(p[i][1], h.name, strlen(h.name));
+
+                // Fechar extremo de escrita do pipe anónimo
+                close(p[i][1]);
+
+                _exit(1);
+            }
+
+            // Fechar extremo de escrita do pipe anónimo
+            close(p[i][1]);
+        }
+
+        char name[20];
+        LinkedList unique_names = NULL;
+
+        char fifoname[20];
+
+        sprintf(fifoname, "/tmp/%d", m.pid);
+
+        // Abrir FIFO para comunicação com o cliente
+        fd = open(fifoname, O_WRONLY);
+
+        if(fd == -1)
+        {
+            perror("Open error when opening PID FIFO");
+            exit(-1);
+        }
+
+        // Popular lista de nomes únicos
+        for(int i = 0; i < num_args; i++)
+        {
+            int bytes_read = read(p[i][0], name, 20);
+
+            if(lookup_l(unique_names, name) == 1)
+            {
+                add(&unique_names, name);
+                // Escrever resultado
+                write(fd, name, bytes_read);
+                write(fd, "\n", 1);
+            }
+            
+            // Fechar extremo de leitura do pipe anónimo
+            close(p[i][0]);
+        }
+
+        destroy(unique_names);
+        close(fd);
+
+        _exit(1);
+    }
+}
+
 void handle_message(HashTable h, Message message, char* pids_file)
 {
     if(message.type == CREATE)
@@ -277,7 +401,9 @@ void handle_message(HashTable h, Message message, char* pids_file)
     else if(message.type == STATUS)
         status(h, message);
     else if(message.type == STATS_TIME)
-        stats_time(h, message, pids_file);
+        stats_time(message, pids_file);
     else if(message.type == STATS_COMMAND)
-        stats_command(h, message, pids_file);
+        stats_command(message, pids_file);
+    else if(message.type == STATS_UNIQUE)
+        stats_unique(message, pids_file);
 }
