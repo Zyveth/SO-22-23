@@ -15,7 +15,6 @@ HashTable h;
 
 void signal_callback_handler(int signum)
 {
-    printf("Closing reading file descriptor.\n");
     int close_ret = close(fdr);
 
     if(close_ret == -1)
@@ -24,7 +23,6 @@ void signal_callback_handler(int signum)
         exit(-1);
     }
 
-    printf("Closing writing file descriptor.\n");
     close_ret = close(fdw);
 
     if(close_ret == -1)
@@ -33,7 +31,6 @@ void signal_callback_handler(int signum)
         exit(-1);
     }
 
-    printf("Closing named pipe.\n");
     close_ret = unlink(fifo);
 
     if(close_ret != 0)
@@ -41,6 +38,8 @@ void signal_callback_handler(int signum)
         perror("Unlink error");
         exit(-1);
     }
+
+    destroy_table(h);
 
     exit(signum);
 }
@@ -56,7 +55,6 @@ int main(int argc, char const *argv[])
     int bytes_read;
     Message message;
 
-    printf("Making named pipe.\n");
     int mkfifo_ret = mkfifo(fifo, 0666);
 
     if(mkfifo_ret == -1)
@@ -67,7 +65,6 @@ int main(int argc, char const *argv[])
 
     signal(SIGINT, signal_callback_handler);
 
-    printf("Opening reading end.\n");
     fdr = open(fifo, O_RDONLY);
 
     if(fdr == -1)

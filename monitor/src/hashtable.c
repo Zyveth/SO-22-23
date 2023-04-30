@@ -79,6 +79,23 @@ int remove_message(HashTable h, int k, Message *m)
     return removed;
 }
 
+void destroy_pair(Pair p)
+{
+    if(p != NULL)
+    {
+        destroy_pair(p->next);
+        free(p);
+    }
+}
+
+void destroy_table(HashTable h)
+{
+    for(int i = 0; i < HSIZE; i++)
+    {
+        destroy_pair(h[i]);
+    }
+}
+
 void print_table(HashTable h)
 {
     for(int i = 0; i < HSIZE; i++)

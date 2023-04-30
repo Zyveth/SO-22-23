@@ -20,6 +20,8 @@ int update(HashTable h, int k, Message m);
 
 int remove_message(HashTable h, int k, Message *m);
 
+void destroy_table(HashTable h);
+
 void print_table(HashTable h);
 
 #endif // HSGTABLE_H

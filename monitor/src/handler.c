@@ -251,15 +251,19 @@ void stats_command(Message m, char* pids_file)
     {
         char fifoname[20];
 
-        sprintf(fifoname, "/tmp/%d", m.pid);
-
-        int num_args = count_char(m.name, ' ') + 1;
-
-        char *pids[num_args];
-        char *token, *string;
+        char *token, *string, *name;
         int args = 0;
 
         string = strdup(m.name);
+
+        if((token = strsep(&string, ";")) != NULL)
+            name = strdup(token);
+
+        sprintf(fifoname, "/tmp/%d", m.pid);
+
+        int num_args = count_char(string, ' ') + 1;
+
+        char *pids[num_args];
 
         while((token = strsep(&string, " ")) != NULL)
             pids[args++] = strdup(token);
@@ -271,7 +275,7 @@ void stats_command(Message m, char* pids_file)
         char filename[20];
         Info h;
 
-        for(int i = 1; i < num_args; i++)
+        for(int i = 0; i < num_args; i++)
         {
             rets[i] = pipe(p[i]);
 
@@ -311,9 +315,9 @@ void stats_command(Message m, char* pids_file)
                 // Fechar ficheiro
                 close(fd);
 
-                if(strcmp(h.name, pids[0]) == 0)
+                if(strcmp(h.name, name) == 0)
                     valid++;
-
+                
                 // Escrever para pipe anónimo o nome do programa
                 write(p[i][1], &valid, sizeof(int));
 
@@ -327,7 +331,7 @@ void stats_command(Message m, char* pids_file)
         }
 
         int aux;
-        for(int i = 1; i < num_args; i++)
+        for(int i = 0; i < num_args; i++)
         {
             read(p[i][0], &aux, sizeof(int));
             valid += aux;

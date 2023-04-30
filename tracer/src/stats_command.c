@@ -16,7 +16,7 @@ void stats_command(char* prog_name, char* args[], int args_num)
     Message m;
 
     strcat(m.name, prog_name);
-    strcat(m.name, " ");
+    strcat(m.name, ";");
 
     for(int i = 0; i < args_num - 1; i++)
     {
