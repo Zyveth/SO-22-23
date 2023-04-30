@@ -91,7 +91,7 @@ int main(int argc, char const *argv[])
             perror("Read error -> monitor");
             exit(-1);
         }
-
+        
         handle_message(h, message, (char*) argv[1]);
     }
 

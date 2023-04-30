@@ -71,7 +71,7 @@ void stats_unique(char* args[], int args_num)
     }
 
     while((rets = readln(fifo_fd, output, 1024)) > 0)
-        printf("%s", output);
+        write(1, output, rets);
 
     close(fifo_fd);
     unlink(fifoname);

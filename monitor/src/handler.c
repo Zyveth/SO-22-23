@@ -14,6 +14,7 @@
 
 void create_file(Message start, Message end, char* pids_file)
 {
+    int status;
     int fork_ret = fork();
 
     if(fork_ret == -1)
@@ -47,10 +48,13 @@ void create_file(Message start, Message end, char* pids_file)
 
         _exit(1);
     }
+
+    waitpid(fork_ret, &status, WNOHANG);
 }
 
 void status(HashTable h, Message m)
 {
+    int status;
     int fork_ret = fork();
 
     if(fork_ret == -1)
@@ -108,32 +112,13 @@ void status(HashTable h, Message m)
 
         _exit(1);
     }
-}
 
-long get_time(char* pid, char* pids_file)
-{
-    int fd;
-    char filename[strlen(pid) + strlen(pids_file)];
-
-    sprintf(filename, "%s/%s", pids_file, pid);
-
-    fd = open(filename, O_RDONLY, 0666);
-
-    if(fd == -1)
-    {
-        perror("Open error when opening PID file");
-        exit(-1);
-    }
-
-    Info i;
-
-    read(fd, &i, sizeof(struct info));
-
-    return i.exec_time;
+    waitpid(fork_ret, &status, WNOHANG);
 }
 
 void stats_time(Message m, char* pids_file)
 {
+    int status;
     int fork_ret = fork();
 
     if(fork_ret == -1)
@@ -161,12 +146,73 @@ void stats_time(Message m, char* pids_file)
 
         free(string);
 
+        int fd, rets[num_args], p[num_args][2];
         long total_time = 0;
+        char filename[20];
+        Info h;
 
         for(int i = 0; i < num_args; i++)
-            total_time += get_time(pids[i], pids_file);
+        {
+            rets[i] = pipe(p[i]);
 
-        int fd = open(fifoname, O_WRONLY);
+            if(rets[i] == -1)
+            {
+                perror("Error creating pipe when handling stats_unique request");
+                exit(-1);
+            }
+            rets[i] = fork();
+
+            if(rets[i] == -1)
+            {
+                perror("Error forking when handling stats_unique request");
+                exit(-1);
+            }
+
+            if(rets[i] == 0)
+            {
+                // Fechar extremo de leitura do pipe anónimo
+                close(p[i][0]);
+
+                // Verificar que ficheiro precisamos abrir
+                sprintf(filename, "%s/%s", pids_file, pids[i]);
+
+                // Abrir ficheiro
+                fd = open(filename, O_RDONLY, 0666);
+
+                if(fd == -1)
+                {
+                    perror("Open error when opening PID file");
+                    _exit(-1);
+                }
+
+                // Ler informação do ficheiro
+                read(fd, &h, sizeof(struct info));
+
+                // Fechar ficheiro
+                close(fd);
+
+                // Escrever para pipe anónimo o nome do programa
+                write(p[i][1], &h.exec_time, sizeof(long));
+
+                // Fechar extremo de escrita do pipe anónimo
+                close(p[i][1]);
+
+                _exit(1);
+            }
+
+            close(p[i][1]);
+        }
+
+        long aux;
+        for(int i = 0; i < num_args; i++)
+        {
+            read(p[i][0], &aux, sizeof(long));
+            total_time += aux;
+            close(p[i][0]);
+            waitpid(rets[i], &status, WNOHANG);
+        }
+
+        fd = open(fifoname, O_WRONLY);
 
         if(fd == -1)
         {
@@ -186,11 +232,13 @@ void stats_time(Message m, char* pids_file)
 
         _exit(1);
     }
+
+    waitpid(fork_ret, &status, WNOHANG);
 }
 
 void stats_command(Message m, char* pids_file)
 {
-    
+    int status;
     int fork_ret = fork();
 
     if(fork_ret == -1)
@@ -202,7 +250,6 @@ void stats_command(Message m, char* pids_file)
     if(fork_ret == 0)
     {
         char fifoname[20];
-        char filename[20];
 
         sprintf(fifoname, "/tmp/%d", m.pid);
 
@@ -219,28 +266,73 @@ void stats_command(Message m, char* pids_file)
 
         free(string);
 
-        int fd;
+        int fd, rets[num_args], p[num_args][2];
         int valid = 0;
+        char filename[20];
         Info h;
 
         for(int i = 1; i < num_args; i++)
         {
-            sprintf(filename, "%s/%s", pids_file, pids[i]);
+            rets[i] = pipe(p[i]);
 
-            fd = open(filename, O_RDONLY, 0666);
-
-            if(fd == -1)
+            if(rets[i] == -1)
             {
-                perror("Open error when opening PID file");
+                perror("Error creating pipe when handling stats_unique request");
+                exit(-1);
+            }
+            rets[i] = fork();
+
+            if(rets[i] == -1)
+            {
+                perror("Error forking when handling stats_unique request");
                 exit(-1);
             }
 
-            read(fd, &h, sizeof(struct info));
+            if(rets[i] == 0)
+            {
+                // Fechar extremo de leitura do pipe anónimo
+                close(p[i][0]);
 
-            close(fd);
+                // Verificar que ficheiro precisamos abrir
+                sprintf(filename, "%s/%s", pids_file, pids[i]);
 
-            if(strcmp(h.name, pids[0]) == 0)
-                valid++;
+                // Abrir ficheiro
+                fd = open(filename, O_RDONLY, 0666);
+
+                if(fd == -1)
+                {
+                    perror("Open error when opening PID file");
+                    _exit(-1);
+                }
+
+                // Ler informação do ficheiro
+                read(fd, &h, sizeof(struct info));
+
+                // Fechar ficheiro
+                close(fd);
+
+                if(strcmp(h.name, pids[0]) == 0)
+                    valid++;
+
+                // Escrever para pipe anónimo o nome do programa
+                write(p[i][1], &valid, sizeof(int));
+
+                // Fechar extremo de escrita do pipe anónimo
+                close(p[i][1]);
+
+                _exit(1);
+            }
+
+            close(p[i][1]);
+        }
+
+        int aux;
+        for(int i = 1; i < num_args; i++)
+        {
+            read(p[i][0], &aux, sizeof(int));
+            valid += aux;
+            close(p[i][0]);
+            waitpid(rets[i], &status, WNOHANG);
         }
 
         fd = open(fifoname, O_WRONLY);
@@ -263,10 +355,13 @@ void stats_command(Message m, char* pids_file)
 
         _exit(1);
     }
+
+    waitpid(fork_ret, &status, WNOHANG);
 }
 
 void stats_unique(Message m, char* pids_file)
 {
+    int status;
     int fork_ret = fork();
 
     if(fork_ret == -1)
@@ -292,27 +387,27 @@ void stats_unique(Message m, char* pids_file)
 
         free(string);
 
-        int fd, rets, p[num_args][2];
+        int fd, rets[num_args], p[num_args][2];
         Info h;
 
         for(int i = 0; i < num_args; i++)
         {
-            rets = pipe(p[i]);
+            rets[i] = pipe(p[i]);
 
-            if(rets == -1)
+            if(rets[i] == -1)
             {
                 perror("Error creating pipe when handling stats_unique request");
                 exit(-1);
             }
-            rets = fork();
+            rets[i] = fork();
 
-            if(rets == -1)
+            if(rets[i] == -1)
             {
                 perror("Error forking when handling stats_unique request");
                 exit(-1);
             }
 
-            if(rets == 0)
+            if(rets[i] == 0)
             {
                 // Fechar extremo de leitura do pipe anónimo
                 close(p[i][0]);
@@ -348,7 +443,7 @@ void stats_unique(Message m, char* pids_file)
             close(p[i][1]);
         }
 
-        char name[20];
+        char name[420];
         LinkedList unique_names = NULL;
 
         char fifoname[20];
@@ -367,7 +462,7 @@ void stats_unique(Message m, char* pids_file)
         // Popular lista de nomes únicos
         for(int i = 0; i < num_args; i++)
         {
-            int bytes_read = read(p[i][0], name, 20);
+            int bytes_read = read(p[i][0], name, 420);
 
             if(lookup_l(unique_names, name) == 1)
             {
@@ -379,6 +474,7 @@ void stats_unique(Message m, char* pids_file)
             
             // Fechar extremo de leitura do pipe anónimo
             close(p[i][0]);
+            waitpid(rets[i], &status, WNOHANG);
         }
 
         destroy(unique_names);
@@ -386,6 +482,8 @@ void stats_unique(Message m, char* pids_file)
 
         _exit(1);
     }
+
+    waitpid(fork_ret, &status, WNOHANG);
 }
 
 void handle_message(HashTable h, Message message, char* pids_file)

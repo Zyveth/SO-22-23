@@ -8,6 +8,7 @@
 #include "../include/stats_time.h"
 #include "../include/stats_command.h"
 #include "../include/stats_unique.h"
+#include "../include/pipeline.h"
 
 int main(int argc, char const *argv[])
 {
@@ -27,6 +28,8 @@ int main(int argc, char const *argv[])
 
         if(strcmp(argv[2], "-u") == 0)
             _system_((char*) argv[3]);
+        else if(strcmp(argv[2], "-p") == 0)
+            pipeline((char*) argv[3]);
     }
     else if(strcmp(argv[1], "status") == 0)
         status();

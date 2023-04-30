@@ -64,7 +64,7 @@ void status()
 
     // Enquanto o número de bytes lidos não for 0 ler e imprimir o conteúdo lido
     while((rets = readln(fd, buffer, 1024)) > 0)
-        printf("%s", buffer);
+        write(1, buffer, rets);
 
     // Fechar extremo de leitura de /tmp/(pid)
     close(fd);

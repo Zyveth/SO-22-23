@@ -3,7 +3,7 @@
 
 typedef struct info
 {
-    char name[20];
+    char name[420];
     long exec_time;
 } Info;
 

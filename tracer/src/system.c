@@ -40,7 +40,10 @@ int _system_(char* command)
     string = strdup(command);
 
     while((token = strsep(&string, " ")) != NULL)
-        execvp_args[args++] = strdup(token);
+    {
+        if(strlen(token) > 0)
+            execvp_args[args++] = strdup(token);
+    }
 
     execvp_args[args] = NULL;
     
@@ -68,7 +71,6 @@ int _system_(char* command)
         // Imprimir PID do processo filho.
         printf("Running PID %d\n", getpid());
 
-        // TODO: Enviar PID, nome e timestamp ao monitor.
         Message message;
 
         message.type = CREATE;
@@ -97,8 +99,6 @@ int _system_(char* command)
         exit(-1);
     }
 
-    // TODO: Enviar PID e timestamp ao monitor.
-
     Message message;
     message.type = END;
     message.pid = terminated_pid;
@@ -117,6 +117,9 @@ int _system_(char* command)
     free(string);
 
     close(fd);
+
+    for(int i = 0; i < num_args && execvp_args[i] != NULL; i++)
+        free(execvp_args[i]);
 
     return -1;
 }
